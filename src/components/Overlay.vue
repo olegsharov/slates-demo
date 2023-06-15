@@ -15,7 +15,7 @@ import { onMounted, ref, toRef, watch } from 'vue';
 
       ctx.beginPath();
       
-      props.boxes[props.frame].forEach(box => {
+      (props.boxes[props.frame] || []).forEach(box => {
         ctx.moveTo(box[0] * scaleX,box[1] * scaleY);
         ctx.lineTo(box[2] * scaleX,box[3] * scaleY);
         ctx.lineTo(box[4] * scaleX,box[5] * scaleY);

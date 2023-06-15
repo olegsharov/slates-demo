@@ -2,12 +2,17 @@
   import { computed } from '@vue/reactivity';
   import { onMounted, ref } from 'vue'
   import Overlay from './components/Overlay.vue'
+  import safeEval from 'safe-eval'
   
   const player = ref(null)
   const time = ref(0)
 
+  const framerate = computed(() => {
+    return meta.value && parseInt(meta.value.framerate.split("/")[0]) / parseInt(meta.value.framerate.split("/")[1]);
+  });
+
   const frame = computed(() => {
-    return Math.round(time.value*24);
+    return Math.round(time.value * framerate.value);
   })
 
   let selectedVideo = ref(null)
@@ -16,8 +21,10 @@
   let videoHeight = ref(0)
   let videoUrl = computed(() => `${import.meta.env.VITE_SERVER_URL}/video/${selectedVideo.value}`)
   let boxesUrl = computed(() => `${import.meta.env.VITE_SERVER_URL}/video/${selectedVideo.value}/boxes.json`)
+  let metaUrl = computed(() => `${import.meta.env.VITE_SERVER_URL}/video/${selectedVideo.value}/meta.json`)
   let boxes = ref(null)
   let videos = ref(null)
+  let meta = ref(null)
 
   onMounted(async () => {
     const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/videos.json`)
@@ -27,13 +34,27 @@
   async function canPlay(event) {
     videoWidth.value = event.target.videoWidth;
     videoHeight.value = event.target.videoHeight;
-    const response = await fetch(boxesUrl.value);
-    boxes.value = await response.json();
+    await fetch(boxesUrl.value)
+      .then(r => r.json())
+      .then(json => boxes.value = json);
+    await fetch(metaUrl.value)
+      .then(r => r.json())
+      .then(json => meta.value = json);
+    
+    
     loaded.value = true;
   }
 
   function updateTime(event) {
     time.value = event.target.currentTime;
+  }
+
+  function nextFrame() {
+    player.value.currentTime = time.value + 1/framerate.value;
+  }
+
+  function prevFrame() {
+    player.value.currentTime = time.value - 1/framerate.value;
   }
 
 </script>
@@ -74,10 +95,22 @@
       <div class="flex flex-col flex-grow bg-stone-800 max-w-1/2 w-1/2" v-if="loaded && boxes">
         <div class="flex flex-col relative flex-grow relative text-stone-400">
           <div class="absolute inset-0 overflow-y-auto p-4">
-            <div class="py-2"> <b>Frame:</b> {{ frame }} <b>Current time:</b> {{ time }}</div>
-            <div v-for="(box, index) in boxes[frame]" :key="index" class="text-sm">
-              {{ box }}
-            </div>
+            <div class="py-2"> 
+              <div class="flex items-center">
+                <div class="flex items-center">
+                  <button class="btn shadow-sm" @click="prevFrame()">«</button>
+                  <span class="px-2"><b>Frame:</b> {{ frame }}</span>
+                  <button class="btn shadow-sm" @click="nextFrame()">»</button>
+                </div>
+                <div class="pl-4">
+                  <b>Current time:</b> {{ time }}</div>
+                </div>
+              </div>
+{{ meta }}<br>
+!!{{ framerate }}!!
+              <div v-for="(box, index) in boxes[frame]" :key="index" class="text-sm">
+                {{ box }}
+              </div>
           </div>
         </div>
       </div>

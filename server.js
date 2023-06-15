@@ -2,7 +2,7 @@ import express from 'express'
 import fs from 'fs';
 import path from 'path'
 import dotenv from 'dotenv';
-import makeBoxesJson from './boxesService.js';
+import makeBoxesJson, { removeStaticBoxes } from './boxesService.js';
 import cors from 'cors'
 dotenv.config()
 
@@ -11,7 +11,8 @@ app.use(cors())
 
 app.get('/videos.json', (req, res) => {
     const files = fs.readdirSync(process.env.DATA_ROOT)
-      .filter(f => fs.existsSync(path.join(process.env.DATA_ROOT,`${f}.csv`)));
+      .filter(f => fs.existsSync(path.join(process.env.DATA_ROOT,`${f}.csv`)) &&
+                   fs.existsSync(path.join(process.env.DATA_ROOT,`${f}.json`)));
     res.send(files)
 });
 
@@ -31,11 +32,33 @@ app.get('/video/:filename/boxes.json', (req, res) => {
 
     const csv = fs.readFileSync(csvpath).toString();
 
-    const result = makeBoxesJson(csv);
+    let result = makeBoxesJson(csv);
+    result = removeStaticBoxes(result);
    
     res.header('Content-type', 'application/json');
     res.send(JSON.stringify(result, null, 2))
 });
+
+app.get('/video/:filename/meta.json', (req, res) => {
+    const filename = req.params.filename;
+    const videopath = path.join(process.env.DATA_ROOT, filename);
+
+    if (!fs.existsSync(videopath)) {
+        return res.status(404).send();
+    }
+
+    const csvpath = path.join(process.env.DATA_ROOT, `${filename}.json`);
+
+    if (!fs.existsSync(csvpath)) {
+        return res.status(404).send();
+    }
+
+    const json = fs.readFileSync(csvpath).toString();
+   
+    res.header('Content-type', 'application/json');
+    res.send(json)
+});
+
 
 app.get('/video/:filename', (req, res) => {
     const filename = req.params.filename;
