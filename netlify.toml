@@ -1,0 +1,5 @@
+[[redirects]]
+  from = "/server/*"
+  to = "http://s402.tplinkdns.com:8383/:splat"
+  status = 200
+  force = true
