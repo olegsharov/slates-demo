@@ -2,7 +2,7 @@
   import { computed } from '@vue/reactivity';
   import { onMounted, ref } from 'vue'
   import Overlay from './components/Overlay.vue'
-  import safeEval from 'safe-eval'
+  import Events from './components/Events.vue'
   
   const player = ref(null)
   const time = ref(0)
@@ -11,9 +11,8 @@
     return meta.value && parseInt(meta.value.framerate.split("/")[0]) / parseInt(meta.value.framerate.split("/")[1]);
   });
 
-  const frame = computed(() => {
-    return Math.round(time.value * framerate.value);
-  })
+  const frame = computed(() => Math.round(time.value * framerate.value))
+  const durationFrames = computed(() => duration.value = Math.round((player.value && player.value.duration || 0) * framerate.value))
 
   let selectedVideo = ref(null)
   let loaded = ref(false)
@@ -25,6 +24,7 @@
   let boxes = ref(null)
   let videos = ref(null)
   let meta = ref(null)
+  let duration = ref(null)
 
   onMounted(async () => {
     const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/videos.json`)
@@ -40,13 +40,22 @@
     await fetch(metaUrl.value)
       .then(r => r.json())
       .then(json => meta.value = json);
-    
-    
+    duration.value = player.value.duration;
+    update();
     loaded.value = true;
   }
 
+  function update() {
+    time.value = player.value.currentTime;
+    requestAnimationFrame(update);
+  }
+
   function updateTime(event) {
-    time.value = event.target.currentTime;
+    // time.value = event.target.currentTime;
+  }
+
+  function seekFrame(frame) {
+    player.value.currentTime = frame / framerate.value;
   }
 
   function nextFrame() {
@@ -67,7 +76,7 @@
           <div class="absolute inset-0 overflow-y-auto p-2">
             <div class="py-2 text-stone-400"> <b>Videos</b> </div>
             <div v-for="(video, index) in videos" :key="index" 
-              class="text-sm p-2 hover:bg-stone-500 hover:text-stone-800 ponter-default" 
+              class="text-sm p-2 hover:bg-stone-500 hover:text-stone-800 cursor-pointer" 
               :class="{
                 'bg-stone-500 text-stone-800' : selectedVideo == video,
                 'text-stone-500' : selectedVideo != video
@@ -86,34 +95,38 @@
           :height="videoHeight" 
           :boxes="boxes"
           :frame="frame"
-          v-if="loaded"></Overlay>  
+          v-if="loaded">
+        </Overlay>
+        
+        <Events :boxes="boxes" :frame="frame" :player="player" :duration="durationFrames" @seek="seekFrame($event)">
+        </Events>
+
       </div>
       <div class="relative flex items-center justify-center flex-grow w-full text-stone-600 text-xs font-bold uppercase" v-else>
         Pick a video
       </div>
 
-      <div class="flex flex-col flex-grow bg-stone-800 max-w-1/2 w-1/2" v-if="loaded && boxes">
+      <!-- <div class="flex flex-col flex-grow bg-stone-800 max-w-1/2 w-1/2" v-if="loaded && boxes">
         <div class="flex flex-col relative flex-grow relative text-stone-400">
           <div class="absolute inset-0 overflow-y-auto p-4">
             <div class="py-2"> 
               <div class="flex items-center">
                 <div class="flex items-center">
                   <button class="btn shadow-sm" @click="prevFrame()">«</button>
-                  <span class="px-2"><b>Frame:</b> {{ frame }}</span>
+                  <span class="px-2"><b>Frame:</b> {{gnome-tweak-tool
+ frame }}</span>
                   <button class="btn shadow-sm" @click="nextFrame()">»</button>
                 </div>
                 <div class="pl-4">
                   <b>Current time:</b> {{ time }}</div>
                 </div>
               </div>
-{{ meta }}<br>
-!!{{ framerate }}!!
               <div v-for="(box, index) in boxes[frame]" :key="index" class="text-sm">
                 {{ box }}
               </div>
           </div>
         </div>
-      </div>
+      </div> -->
       
   </div>
 </template>

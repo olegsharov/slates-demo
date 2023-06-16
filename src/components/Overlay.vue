@@ -1,6 +1,5 @@
 <script setup>
-  import { computed } from '@vue/reactivity';
-import { onMounted, ref, toRef, watch } from 'vue';
+  import { onMounted, ref, toRef, watch } from 'vue';
   
   const props = defineProps(['width', 'height', 'boxes', 'frame'])
   
@@ -11,6 +10,9 @@ import { onMounted, ref, toRef, watch } from 'vue';
 
   function redraw() {
     if (ctx) {
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = "red";
+
       ctx.clearRect(0, 0, props.width, props.height);
 
       ctx.beginPath();
@@ -29,8 +31,6 @@ import { onMounted, ref, toRef, watch } from 'vue';
 
   onMounted(() => {
     ctx = overlay.value.getContext('2d')
-    ctx.lineWidth = 5;
-    ctx.strokeStyle = "red";
     redraw();
   });
 </script>
